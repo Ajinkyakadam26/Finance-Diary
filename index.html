@@ -296,11 +296,11 @@ canvas{display:block}
 <div class="pg on" id="pg-home">
   <div class="kg">
     <div class="kpi"><div class="kl">Total Income</div><div class="kv" id="k-inc">₹0</div><div class="ks">this month</div></div>
-    <div class="kpi"><div class="kl">Spent</div><div class="kv" id="k-spent">₹0</div><div class="ks" id="k-spct">0%</div></div>
-    <div class="kpi"><div class="kl">Remaining</div><div class="kv" id="k-rem">₹0</div><div class="ks" id="k-rbadge"></div></div>
+    <div class="kpi"><div class="kl">Spent Through Account</div><div class="kv" id="k-spent">₹0</div><div class="ks" id="k-spct">0%</div></div>
+    <div class="kpi"><div class="kl">Remaining Amount In Account</div><div class="kv" id="k-rem">₹0</div><div class="ks" id="k-rbadge"></div></div>
     <div class="kpi"><div class="kl">Daily Budget Left</div><div class="kv" id="k-daily">₹0</div><div class="ks" id="k-dleft">per day</div></div>
     <div class="kpi"><div class="kl">Credit Card Spend</div><div class="kv" id="k-cc">₹0</div><div class="ks" id="k-cc-sub">unpaid this month</div></div>
-    <div class="kpi"><div class="kl">Largest Spend</div><div class="kv-sm" id="k-lrg">—</div><div class="ks" id="k-lcat">—</div></div>
+    <div class="kpi"><div class="kl">Total Spent</div><div class="kv" id="k-totalspent">₹0</div><div class="ks">account + credit card</div></div>
   </div>
   <div class="card">
     <div class="ct">Savings Goal</div>
@@ -1194,6 +1194,14 @@ function renderInsights(md,bycat,spent,income,savRate,avgD,dim,rem,cats,dLeft,da
   if(avgD>0)items.push({i:'📊',t:'Average daily spend: <strong>'+fmt(avgD)+'</strong> over '+Math.min(dim-dLeft,dim)+' days tracked.'});
   // 5. Credit card reminder
   if(ccSpend>0)items.push({i:'💳',t:'<strong>'+fmt(ccSpend)+'</strong> charged to credit card this month. Remember to pay your bill!'});
+  // 5b. Largest single expense (moved from KPI grid) — shows account/credit-card source
+  var largestTxn=txns.slice().sort(function(a,b){return b.amount-a.amount;})[0];
+  if(largestTxn){
+    var lAcct=largestTxn.acctId?getAccount(largestTxn.acctId):null;
+    var lIsCC=lAcct&&lAcct.type==='credit';
+    var lSourceText=lAcct?(lIsCC?'paid via <strong>credit card</strong> ('+esc(lAcct.name)+')':'paid via <strong>'+esc(lAcct.name)+'</strong>'):'no account tagged';
+    items.push({i:'💥',t:'Largest single expense: <strong>'+fmt(largestTxn.amount)+'</strong> on <strong>'+esc(catName(largestTxn.cat))+'</strong> — '+lSourceText+'.'});
+  }
   // 6. Borrowed money reminder — check previous month
   var prevKey=(CM===0?(CY-1)+'-12':(CY)+'-'+String(CM).padStart(2,'0'));
   var prevS=loadStore();var prevMD=prevS[prevKey];
@@ -1286,8 +1294,7 @@ function renderAll(){
   document.getElementById('k-dleft').textContent=dLeft>0?(dLeft+' days left'):'Month end';
   document.getElementById('k-cc').textContent=fmt(ccSpend);
   document.getElementById('k-cc-sub').textContent=ccSpend>0?'⚠️ pay your bill':'no CC spend';
-  document.getElementById('k-lrg').textContent=largest?fmt(largest.amount):'—';
-  document.getElementById('k-lcat').textContent=largest?catName(largest.cat).split('/')[0]:'—';
+  document.getElementById('k-totalspent').textContent=fmt(spent+ccSpend);
 
   // Ring
   var rp=sg>0?Math.min(1,savAmt/sg):0;
