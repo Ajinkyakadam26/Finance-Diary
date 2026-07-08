@@ -1260,18 +1260,21 @@ function astat(val,lbl){return '<div class="astat"><div class="astat-v">'+val+'<
 function renderAll(){
   var md=getMD(),cats=getCats(),txns=md.txns||[],bud=md.budgets||{};
   var income=getTotalIncome(md);var sg=md.savingsGoal||0;
-  var spent=txns.reduce(function(s,t){return s+t.amount;},0);
+  // credit card spend — tracked separately, does NOT reduce income/remaining
+  var ccAcctIds=getAccounts().filter(function(a){return a.type==='credit';}).map(function(a){return a.id;});
+  var ccSpend=txns.filter(function(t){return ccAcctIds.indexOf(t.acctId)>=0;}).reduce(function(s,t){return s+t.amount;},0);
+  // non-credit-card spend is what actually leaves the bank balance this month
+  var nonCcTxns=txns.filter(function(t){return ccAcctIds.indexOf(t.acctId)<0;});
+  var spent=nonCcTxns.reduce(function(s,t){return s+t.amount;},0);
   var rem=income-spent,savAmt=Math.max(0,rem);
   var savR=income>0?savAmt/income*100:0,spPct=income>0?spent/income*100:0;
+  // category breakdown still includes ALL transactions (incl. credit card) per user preference
   var bycat={};cats.forEach(function(c){bycat[c.id]=0;});txns.forEach(function(t){bycat[t.cat]=(bycat[t.cat]||0)+t.amount;});
   var now=new Date(),dim=new Date(CY,CM+1,0).getDate();
   var passed=(CY===now.getFullYear()&&CM===now.getMonth())?now.getDate():dim;
   var dLeft=dim-passed;var avgD=passed>0?spent/passed:0;
   var dailyLeft=dLeft>0&&rem>0?rem/dLeft:0;
   var largest=txns.slice().sort(function(a,b){return b.amount-a.amount;})[0];
-  // credit card spend
-  var ccAcctIds=getAccounts().filter(function(a){return a.type==='credit';}).map(function(a){return a.id;});
-  var ccSpend=txns.filter(function(t){return ccAcctIds.indexOf(t.acctId)>=0;}).reduce(function(s,t){return s+t.amount;},0);
 
   // KPIs
   document.getElementById('k-inc').textContent=fmt(income);
